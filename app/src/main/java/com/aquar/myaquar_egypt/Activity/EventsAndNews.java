@@ -7,6 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -18,9 +19,11 @@ import com.androidnetworking.common.Priority;
 import com.androidnetworking.error.ANError;
 import com.androidnetworking.interfaces.JSONObjectRequestListener;
 import com.aquar.myaquar_egypt.Adapter.EventsAndNewsAdapter;
+import com.aquar.myaquar_egypt.InterFaces.ForRitrofit;
 import com.aquar.myaquar_egypt.Model.ModelOfNewsAndEvent.ModelArrayOfEventAndNews;
 import com.aquar.myaquar_egypt.Model.ModelOfNewsAndEvent.ModelOfEventAndNews;
 import com.aquar.myaquar_egypt.R;
+import com.aquar.myaquar_egypt.RetrofitConnection;
 import com.aquar.myaquar_egypt.Utils.ConstantsUrl;
 import com.aquar.myaquar_egypt.Utils.myUtils;
 import com.google.gson.Gson;
@@ -31,6 +34,10 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 
 import dmax.dialog.SpotsDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 public class EventsAndNews extends AppCompatActivity {
     private RecyclerView mRecyclerView;
@@ -58,51 +65,51 @@ public class EventsAndNews extends AppCompatActivity {
         dialog1.setMessage("Please wait.....");
         dialog1.show();
 
-        GetHome_Data();
+        Get_Data_EventAndNews();
 
 
     }
 
 
+    private void Get_Data_EventAndNews(){
+
+        Retrofit retrofit = RetrofitConnection.connectWith() ;
+        ForRitrofit r = retrofit.create(ForRitrofit.class);
 
 
-    private void GetHome_Data() {
+        Call<ModelArrayOfEventAndNews> connection =  r.Get_Data_EventAndNews();
+        connection.enqueue(new Callback<ModelArrayOfEventAndNews>() {
+            @Override
+            public void onResponse(Call<ModelArrayOfEventAndNews>call, Response<ModelArrayOfEventAndNews> response) {
+                dialog1.dismiss();
+              try {
 
+                  parentOfEventAndNews.setVisibility(View.VISIBLE);
 
-        AndroidNetworking.get(ConstantsUrl.Event)
-                .setPriority(Priority.LOW)
-                .build()
-                .getAsJSONObject(new JSONObjectRequestListener() {
+                list = response.body().getProjects();
+                setRecyclerData(list);
+
+                mAdapter.setOnItemClickListener(new EventsAndNewsAdapter.OnItemClickListener() {
                     @Override
-                    public void onResponse(JSONObject response) {
-                        parentOfEventAndNews.setVisibility(View.VISIBLE);
-                        dialog1.dismiss();
-
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-                        ModelArrayOfEventAndNews array = gson.fromJson(response.toString(), ModelArrayOfEventAndNews.class);
-                        list = array.getProjects();
-                        setRecyclerData(list);
-
-
-
-
-                        mAdapter.setOnItemClickListener(new EventsAndNewsAdapter.OnItemClickListener() {
-                            @Override
-                            public void intent_to_detales(int pos, RelativeLayout relativeLayout) {
-                                go_detales( pos, relativeLayout);
-                              id_event= list.get(pos).getProduct_id();
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onError(ANError anError) {
-                        dialog1.dismiss();
-                        Toast.makeText(EventsAndNews.this, "connection field", Toast.LENGTH_SHORT).show();
+                    public void intent_to_detales(int pos, RelativeLayout relativeLayout) {
+                        go_detales( pos, relativeLayout);
+                        id_event= list.get(pos).getProduct_id();
                     }
                 });
+            }catch (Exception c){
+                  Toast.makeText(EventsAndNews.this, "DataBase Error ", Toast.LENGTH_SHORT).show();
+              }
+            }
+
+            @Override
+            public void onFailure(Call<ModelArrayOfEventAndNews>call, Throwable t) {
+                Toast.makeText(EventsAndNews.this, "connection field", Toast.LENGTH_SHORT).show();
+                dialog1.dismiss();
+            }
+        });
+
     }
+
 
     private void setRecyclerData(ArrayList<ModelOfEventAndNews> list) {
 

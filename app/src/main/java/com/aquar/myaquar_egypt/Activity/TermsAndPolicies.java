@@ -13,8 +13,10 @@ import com.androidnetworking.AndroidNetworking;
 import com.androidnetworking.common.Priority;
 import com.androidnetworking.error.ANError;
 import com.androidnetworking.interfaces.JSONObjectRequestListener;
+import com.aquar.myaquar_egypt.InterFaces.ForRitrofit;
 import com.aquar.myaquar_egypt.Model.AboutUs.AboutUsModelObject;
 import com.aquar.myaquar_egypt.R;
+import com.aquar.myaquar_egypt.RetrofitConnection;
 import com.aquar.myaquar_egypt.Utils.ConstantsUrl;
 import com.aquar.myaquar_egypt.Utils.myUtils;
 import com.google.gson.Gson;
@@ -23,6 +25,10 @@ import com.google.gson.GsonBuilder;
 import org.json.JSONObject;
 
 import dmax.dialog.SpotsDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 public class TermsAndPolicies extends AppCompatActivity {
      private  TextView textview ;
@@ -44,43 +50,47 @@ public class TermsAndPolicies extends AppCompatActivity {
         dialog1.setMessage("Please wait.....");
         dialog1.show();
 
-        Get_Data();
+        Get_Data_TermsAndPolicis();
     }
 
 
-
-        private void Get_Data() {
-
-            AndroidNetworking.get(ConstantsUrl.tremsAndPolicies)
-                    .setPriority(Priority.HIGH)
-                    .build()
-                    .getAsJSONObject(new JSONObjectRequestListener() {
-                        @Override
-                        public void onResponse(JSONObject response) {
-
-                            dialog1.dismiss();
-                            parentOfTermesAndPolicies.setVisibility(View.VISIBLE);
-                            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-                            AboutUsModelObject array = gson.fromJson(response.toString(), AboutUsModelObject.class);
+        private void Get_Data_TermsAndPolicis(){
 
 
-                            textview.setText(array.getText());
+            Retrofit retrofit = RetrofitConnection.connectWith() ;
+            final ForRitrofit r = retrofit.create(ForRitrofit.class);
+
+
+            Call<AboutUsModelObject> connection =  r.Get_Data_TermsAndPolicies();
+            connection.enqueue(new Callback<AboutUsModelObject>() {
+                @Override
+                public void onResponse(Call<AboutUsModelObject>call, Response<AboutUsModelObject> response) {
+                    dialog1.dismiss();
+
+                    try {
+                        textview.setText(response.body().getText());
+                        parentOfTermesAndPolicies.setVisibility(View.VISIBLE);
+
+                    }catch (Exception s){
+
+                        Toast.makeText(TermsAndPolicies.this, "DataBase Error", Toast.LENGTH_SHORT).show();
+
+                    }
+
+                }
+
+                @Override
+                public void onFailure(Call<AboutUsModelObject>call, Throwable t) {
+                    Toast.makeText(TermsAndPolicies.this, "connection field", Toast.LENGTH_SHORT).show();
+                    dialog1.dismiss();
+
+                }
+            });
 
 
 
-                        }
+        }
 
-                        @Override
-                        public void onError(ANError anError) {
-                                dialog1.dismiss();
-                            Toast.makeText(TermsAndPolicies.this, "connection field", Toast.LENGTH_SHORT).show();
-
-                        }
-                    });
-
-
-    }
 
     @Override
     public void onBackPressed() {

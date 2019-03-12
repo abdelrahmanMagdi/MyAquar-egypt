@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -16,9 +17,11 @@ import com.androidnetworking.AndroidNetworking;
 import com.androidnetworking.common.Priority;
 import com.androidnetworking.error.ANError;
 import com.androidnetworking.interfaces.JSONObjectRequestListener;
+import com.aquar.myaquar_egypt.InterFaces.ForRitrofit;
 import com.aquar.myaquar_egypt.Model.AboutUs.AboutUsModelObject;
 import com.aquar.myaquar_egypt.Model.ContactUsModel.ContactUsModelObject;
 import com.aquar.myaquar_egypt.R;
+import com.aquar.myaquar_egypt.RetrofitConnection;
 import com.aquar.myaquar_egypt.Utils.ConstantsUrl;
 import com.aquar.myaquar_egypt.Utils.myUtils;
 import com.google.gson.Gson;
@@ -27,6 +30,10 @@ import com.google.gson.GsonBuilder;
 import org.json.JSONObject;
 
 import dmax.dialog.SpotsDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 public class Contact_us extends AppCompatActivity {
     private TextView contct,location,mail,phone;
@@ -44,7 +51,7 @@ public class Contact_us extends AppCompatActivity {
         location=findViewById(R.id.location);
         mail=findViewById(R.id.mail);
         phone=findViewById(R.id.phone);
-        Get_Data();
+        Get_Data_ContactUS();
 
         parent = findViewById(R.id.parentCountactUs);
         dialog1 = new SpotsDialog.Builder().setContext(Contact_us.this).setTheme(R.style.Custom).build();
@@ -53,43 +60,55 @@ public class Contact_us extends AppCompatActivity {
 
 
     }
-    private void Get_Data() {
+
+    private void Get_Data_ContactUS(){
+
+        Retrofit retrofit = RetrofitConnection.connectWith() ;
+        ForRitrofit r = retrofit.create(ForRitrofit.class);
 
 
-        AndroidNetworking.get(ConstantsUrl.contactUs)
-                .setPriority(Priority.HIGH)
-                .build()
-                .getAsJSONObject(new JSONObjectRequestListener() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        dialog1.dismiss();
-                        parent.setVisibility(View.VISIBLE);
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-                        ContactUsModelObject array = gson.fromJson(response.toString(), ContactUsModelObject.class);
-
-                        contct.setText(  array.getText());
-                        location.setText(  array.getAddress());
-                        mail.setText(  array.getMail());
-                        phone.setText(  array.getPhone());
+        Call<ContactUsModelObject> connection =  r.Get_Data_ContactUS();
+        connection.enqueue(new Callback<ContactUsModelObject>() {
+            @Override
+            public void onResponse(Call<ContactUsModelObject>call, Response<ContactUsModelObject> response) {
+                dialog1.dismiss();
+                parent.setVisibility(View.VISIBLE);
+              try {
 
 
-                        instaUrl=array.getInstagram();
-                        faceUrl=array.getFacebook();
-                        youtubeUrl=array.getYoutube();
-                        twitterUrl=array.getTwitter();
 
-                    }
+                contct.setText(  response.body().getText());
+                location.setText(  response.body().getAddress());
+                mail.setText( response.body().getMail());
+                phone.setText( response.body().getPhone());
 
-                    @Override
-                    public void onError(ANError anError) {
-                        dialog1.dismiss();
 
-                        Toast.makeText(Contact_us.this, "connection field", Toast.LENGTH_SHORT).show();
+                instaUrl=response.body().getInstagram();
+                faceUrl=response.body().getFacebook();
+                youtubeUrl=response.body().getYoutube();
+                twitterUrl=response.body().getTwitter();
 
-                    }
-                });
+              }catch (Exception d){
+                  Toast.makeText(Contact_us.this, "DataBase Error", Toast.LENGTH_SHORT).show();
+
+              }
+
+
+            }
+
+            @Override
+            public void onFailure(Call<ContactUsModelObject>call, Throwable t) {
+                Toast.makeText(Contact_us.this, "connection field", Toast.LENGTH_SHORT).show();
+                dialog1.dismiss();
+
+            }
+        });
+
+
+
+
     }
+
 
     public void openTwitter(View view) {
 

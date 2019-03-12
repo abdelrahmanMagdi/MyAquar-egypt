@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,9 +19,11 @@ import com.androidnetworking.error.ANError;
 import com.androidnetworking.interfaces.JSONObjectRequestListener;
 import com.aquar.myaquar_egypt.Activity.Projectdetails;
 import com.aquar.myaquar_egypt.Adapter.example_adapter_for_home_fragment;
+import com.aquar.myaquar_egypt.InterFaces.ForRitrofit;
 import com.aquar.myaquar_egypt.Model.HomeApi.ModelArray;
 import com.aquar.myaquar_egypt.Model.HomeApi.ModelObjects;
 import com.aquar.myaquar_egypt.R;
+import com.aquar.myaquar_egypt.RetrofitConnection;
 import com.aquar.myaquar_egypt.Utils.ConstantsUrl;
 import com.aquar.myaquar_egypt.Utils.myUtils;
 import com.google.gson.Gson;
@@ -31,6 +34,10 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 
 import dmax.dialog.SpotsDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 
 public class fragment_home extends Fragment {
@@ -84,44 +91,47 @@ public class fragment_home extends Fragment {
     private void GetHome_Data() {
         dialog1.show();
 
-        AndroidNetworking.get(ConstantsUrl.Home)
-                .setPriority(Priority.LOW)
-                .build()
-                .getAsJSONObject(new JSONObjectRequestListener() {
+        Retrofit retrofit = RetrofitConnection.connectWith();
+        ForRitrofit r = retrofit.create(ForRitrofit.class);
+
+
+        Call<ModelArray> connection = r.GetHome_Data();
+        connection.enqueue(new Callback<ModelArray>() {
+            @Override
+            public void onResponse(Call<ModelArray> call, Response<ModelArray> response) {
+                dialog1.dismiss();
+                Log.e("kk", response.body() + "iiiii");
+
+                list = response.body().getProjects();
+
+                setRecyclerData(list);
+
+
+                mAdapter.setOnItemClickListener(new example_adapter_for_home_fragment.OnItemClickListener() {
+
                     @Override
-                    public void onResponse(JSONObject response) {
-                        dialog1.dismiss();
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-                        ModelArray array = gson.fromJson(response.toString(), ModelArray.class);
-                        list = array.getProjects();
-                        setRecyclerData(list);
-
-
-                        mAdapter.setOnItemClickListener(new example_adapter_for_home_fragment.OnItemClickListener() {
-
-                            @Override
-                            public void intent_to_detales(int pos, ImageView imageView) {
-                                go_detales(pos, imageView);
-
-                                id = list.get(pos).getProduct_id();
-
-
-                            }
-
-                            @Override
-                            public void make_love(int pos, ImageView img) {
-
-                            }
-                        });
+                    public void intent_to_detales(int pos, ImageView imageView) {
+                        go_detales(pos, imageView);
+                        id = list.get(pos).getProduct_id();
                     }
 
                     @Override
-                    public void onError(ANError anError) {
-                        dialog1.dismiss();
-                        Toast.makeText(getContext(), "connection failed", Toast.LENGTH_SHORT).show();
+                    public void make_love(int pos, ImageView img) {
+
                     }
                 });
+
+            }
+
+            @Override
+            public void onFailure(Call<ModelArray> call, Throwable t) {
+                Toast.makeText(getContext(), "Connection Field", Toast.LENGTH_SHORT).show();
+                dialog1.dismiss();
+
+            }
+        });
+
+
     }
 
     private void setRecyclerData(ArrayList<ModelObjects> list) {

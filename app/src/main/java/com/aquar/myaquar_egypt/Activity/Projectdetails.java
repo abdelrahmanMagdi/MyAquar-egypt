@@ -20,12 +20,17 @@ import com.androidnetworking.interfaces.JSONObjectRequestListener;
 
 
 import com.aquar.myaquar_egypt.Fragments.fragment_home;
+import com.aquar.myaquar_egypt.InterFaces.ForRitrofit;
 import com.aquar.myaquar_egypt.InternalStorage.mySharedPreference;
+import com.aquar.myaquar_egypt.KeyAndValueClass.KeyAndValueIfUserIsLogIn;
+import com.aquar.myaquar_egypt.KeyAndValueClass.KeyAndValueOfProjects;
+import com.aquar.myaquar_egypt.Model.HomeApi.ModelArray;
 import com.aquar.myaquar_egypt.Model.Login.UserInfo;
 import com.aquar.myaquar_egypt.Model.ModelsOfProjectDetails.ArrayModelOfProjectsDetails;
 import com.aquar.myaquar_egypt.Model.ModelsOfProjectDetails.ModelObjectsOfProjectDetails;
 
 import com.aquar.myaquar_egypt.R;
+import com.aquar.myaquar_egypt.RetrofitConnection;
 import com.aquar.myaquar_egypt.Utils.ConstantsUrl;
 import com.aquar.myaquar_egypt.Utils.myUtils;
 import com.daimajia.slider.library.Animations.DescriptionAnimation;
@@ -44,6 +49,10 @@ import java.util.List;
 import java.util.Objects;
 
 import dmax.dialog.SpotsDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 public class Projectdetails extends AppCompatActivity {
     private SliderLayout Product_Slider;
@@ -109,6 +118,7 @@ public class Projectdetails extends AppCompatActivity {
         fragment_home getid = new fragment_home();
 
         int x = getid.id;
+
 
         reciveDate(x);
         //------------------------------------------------------------
@@ -223,86 +233,114 @@ public class Projectdetails extends AppCompatActivity {
     }
 
 
+
+
+
+
     private void reciveDate(int idValue) {
+
+
+
+
         Gson gson = new Gson();
         UserInfo userPOJO = gson.fromJson(mySharedPreference.getUserOBJ(), UserInfo.class);
-        JSONObject object = new JSONObject();
+
+        Retrofit retrofit = RetrofitConnection.connectWith() ;
+        ForRitrofit r = retrofit.create(ForRitrofit.class);
+
+        KeyAndValueOfProjects values ;
+        KeyAndValueIfUserIsLogIn value2;
+
+
+        Call<ArrayModelOfProjectsDetails> connection = null;
+
+
+
         if (!Objects.equals(userPOJO, null)) {
             String UserId = String.valueOf(userPOJO.getUserId());
-            Log.d("blog", UserId + "");
-            try {
-                object.put("id", idValue);
-                object.put("user_id", UserId);
 
-            } catch (JSONException e) {
+            try {
+
+                value2 = new KeyAndValueIfUserIsLogIn(String.valueOf(idValue) ,UserId );
+                connection   =  r.Get_Data_Of_PrijectDetailsAfterLogin(value2);
+
+            } catch (Exception e) {
                 e.getStackTrace();
             }
         } else {
             try {
-                Log.d("blog", idValue + "");
-                object.put("id", idValue);
 
-            } catch (JSONException e) {
+               values = new KeyAndValueOfProjects(String.valueOf(idValue));
+                connection  =  r.Get_Data_Of_PrijectDetailsBeforeLogin(values);
+
+
+            } catch (Exception e) {
                 e.getStackTrace();
             }
         }
-        AndroidNetworking.post(ConstantsUrl.SingleProject)
-                .addJSONObjectBody(object)
-                .setPriority(Priority.LOW)
-                .build()
-                .getAsJSONObject(new JSONObjectRequestListener() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                      parentOfProjectDetails.setVisibility(View.VISIBLE);
-                        dialog1.dismiss();
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                        ArrayModelOfProjectsDetails array = gson.fromJson(response.toString(), ArrayModelOfProjectsDetails.class);
-
-                        list = array.getProject();
 
 
+        connection.enqueue(new Callback<ArrayModelOfProjectsDetails>() {
+            @Override
+            public void onResponse(Call<ArrayModelOfProjectsDetails>call, Response<ArrayModelOfProjectsDetails> response) {
+                dialog1.dismiss();
+                try{
 
-                        //loop for image of slider
-                        for (int i = 0; i < list.get(0).getSlider_images().size(); i++) {
-                            String x = list.get(0).getSlider_images().get(i).getImage_url();
-                            urlimage.add(x);
+                    list = response.body().getProject();
+                    parentOfProjectDetails.setVisibility(View.VISIBLE);
+                    //loop for image of slider
+                    for (int i = 0; i < list.get(0).getSlider_images().size(); i++) {
+                        String x = list.get(0).getSlider_images().get(i).getImage_url();
+                        urlimage.add(x);
+                    }
+
+                    DataOfSlider(urlimage);
+
+                    description_string = list.get(0).getDescription();
+                    // for set all texts of details
+                    setTdevoleporandproject(list.get(0).getDescription(), list.get(0).getDeveloper(), list.get(0).getProject(),
+                            list.get(0).getMin_price()
+                            , list.get(0).getType(), list.get(0).getMin_rooms(), list.get(0).getMax_rooms(),
+                            list.get(0).getMin_bathsrooms()
+                            , list.get(0).getMax_bathsrooms(), list.get(0).getMin_area(), list.get(0).getMax_area()
+
+                    );
+                    liked_projects(Boolean.valueOf(list.get(0).getFavorite()));
+                    // for like button
+
+                    like_btn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            setFavourite(Boolean.valueOf(list.get(0).getFavorite()), list.get(0).getId());
+                            Boolean Indicator = Boolean.valueOf(list.get(0).getFavorite());
+                            Log.d("Liked", !Indicator + "");
+                            liked_projects(Indicator);
+
                         }
+                    });
 
-                        DataOfSlider(urlimage);
 
-                        description_string = list.get(0).getDescription();
-                        // for set all texts of details
-                        setTdevoleporandproject(list.get(0).getDescription(), list.get(0).getDeveloper(), list.get(0).getProject(),
-                                list.get(0).getMin_price()
-                                , list.get(0).getType(), list.get(0).getMin_rooms(), list.get(0).getMax_rooms(),
-                                list.get(0).getMin_bathsrooms()
-                                , list.get(0).getMax_bathsrooms(), list.get(0).getMin_area(), list.get(0).getMax_area()
+                }catch (Exception d){
+                    Toast.makeText(Projectdetails.this, "DataBase Error", Toast.LENGTH_SHORT).show();
 
-                        );
-                        liked_projects(Boolean.valueOf(list.get(0).getFavorite()));
-                        // for like button
 
-                        like_btn.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                setFavourite(Boolean.valueOf(list.get(0).getFavorite()), list.get(0).getId());
-                                Boolean Indicator = Boolean.valueOf(list.get(0).getFavorite());
-                                Log.d("Liked", !Indicator + "");
-                                liked_projects(Indicator);
+                }
 
-                            }
-                        });
 
-                    }
 
-                    @Override
-                    public void onError(ANError anError) {
 
-                        dialog1.dismiss();
-                        Toast.makeText(Projectdetails.this, "connection field", Toast.LENGTH_SHORT).show();
+            }
 
-                    }
-                });
+            @Override
+            public void onFailure(Call<ArrayModelOfProjectsDetails>call, Throwable t) {
+                dialog1.dismiss();
+                Toast.makeText(Projectdetails.this, "connection field", Toast.LENGTH_SHORT).show();
+
+            }
+        });
+
+
+
 
 
     }

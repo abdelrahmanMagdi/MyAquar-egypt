@@ -11,27 +11,25 @@ import android.widget.ImageView;
 
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.androidnetworking.AndroidNetworking;
-import com.androidnetworking.common.Priority;
-import com.androidnetworking.error.ANError;
-import com.androidnetworking.interfaces.JSONObjectRequestListener;
 import com.aquar.myaquar_egypt.Adapter.example_adapter_for_home_fragment;
 import com.aquar.myaquar_egypt.Fragments.fragment_home;
+import com.aquar.myaquar_egypt.InterFaces.ForRitrofit;
+import com.aquar.myaquar_egypt.KeyAndValueClass.KeyAndValueOfProjects;
 import com.aquar.myaquar_egypt.Model.HomeApi.ModelArray;
 import com.aquar.myaquar_egypt.Model.HomeApi.ModelObjects;
 import com.aquar.myaquar_egypt.R;
-import com.aquar.myaquar_egypt.Utils.ConstantsUrl;
+import com.aquar.myaquar_egypt.RetrofitConnection;
 import com.aquar.myaquar_egypt.Utils.myUtils;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 
 import dmax.dialog.SpotsDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 public class Category extends AppCompatActivity {
 
@@ -72,56 +70,69 @@ public class Category extends AppCompatActivity {
 
 
     }
+ private void GetCategoryData(String value){
 
 
 
-    private void GetCategoryData(String value) {
-        JSONObject object = new JSONObject();
-        try {
-            object.put("id", value);
+     Retrofit retrofit = RetrofitConnection.connectWith() ;
+     ForRitrofit r = retrofit.create(ForRitrofit.class);
 
-        } catch (JSONException e) {
-            e.getStackTrace();
-        }
 
-        AndroidNetworking.post(ConstantsUrl.Category)
-                .addJSONObjectBody(object)
-                .setPriority(Priority.LOW)
-                .build()
-                .getAsJSONObject(new JSONObjectRequestListener() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        parentOfCategory.setVisibility(View.VISIBLE);
-                        dialog1.dismiss();
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                        ModelArray array = gson.fromJson(response.toString(), ModelArray.class);
-                        list = array.getProjects();
-                        setRecyclerData(list);
+     KeyAndValueOfProjects values = new KeyAndValueOfProjects(value);
 
-                        mAdapter.setOnItemClickListener(new example_adapter_for_home_fragment.OnItemClickListener() {
+     Call<ModelArray> connection =  r.GetCategoryData(values);
+     connection.enqueue(new Callback<ModelArray>() {
+         @Override
+         public void onResponse(Call<ModelArray>call, Response<ModelArray> response) {
+             parentOfCategory.setVisibility(View.VISIBLE);
+             dialog1.dismiss();
 
-                            @Override
-                            public void intent_to_detales(int pos, ImageView imageView ) {
-                                go_detales(pos, imageView);
+             try {
 
-                                getid.id = list.get(pos).getProduct_id();
 
-                            }
-                            @Override
-                            public void make_love(int pos, ImageView img) {
+               list = response.body().getProjects();
+             setRecyclerData(list);
 
-                            }
-                        });
 
-                    }
 
-                    @Override
-                    public void onError(ANError anError) {
-                            dialog1.dismiss();
+             mAdapter.setOnItemClickListener(new example_adapter_for_home_fragment.OnItemClickListener() {
 
-                    }
-                });
-    }
+                 @Override
+                 public void intent_to_detales(int pos, ImageView imageView ) {
+                     go_detales(pos, imageView);
+
+                     getid.id = list.get(pos).getProduct_id();
+
+                 }
+                 @Override
+                 public void make_love(int pos, ImageView img) {
+
+                 }
+             });
+         }catch (Exception c){
+
+                 Toast.makeText(Category.this, "No Result", Toast.LENGTH_SHORT).show();
+
+             }
+
+         }
+
+         @Override
+         public void onFailure(Call<ModelArray>call, Throwable t) {
+
+             dialog1.dismiss();
+             Toast.makeText(Category.this, "connection field", Toast.LENGTH_SHORT).show();
+
+         }
+     });
+ }
+
+
+
+
+
+
+
     private void setRecyclerData(ArrayList<ModelObjects> list) {
 
     mAdapter = new example_adapter_for_home_fragment(Category.this, list);

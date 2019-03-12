@@ -5,47 +5,32 @@ import android.content.Intent;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.androidnetworking.AndroidNetworking;
-import com.androidnetworking.common.Priority;
-import com.androidnetworking.error.ANError;
-import com.androidnetworking.interfaces.JSONObjectRequestListener;
-import com.aquar.myaquar_egypt.Adapter.example_adapter_for_home_fragment;
-import com.aquar.myaquar_egypt.InternalStorage.mySharedPreference;
+import com.aquar.myaquar_egypt.InterFaces.ForRitrofit;
 import com.aquar.myaquar_egypt.Model.EventandNewsDetailsModel.Model_array_of_Eventandnews;
 import com.aquar.myaquar_egypt.Model.EventandNewsDetailsModel.Model_eventandnews_details;
-import com.aquar.myaquar_egypt.Model.HomeApi.ModelArray;
-import com.aquar.myaquar_egypt.Model.Login.UserInfo;
-import com.aquar.myaquar_egypt.Model.ModelsOfProjectDetails.ArrayModelOfProjectsDetails;
-import com.aquar.myaquar_egypt.Model.ModelsOfProjectDetails.ModelObjectsOfProjectDetails;
 import com.aquar.myaquar_egypt.R;
-import com.aquar.myaquar_egypt.Utils.ConstantsUrl;
+import com.aquar.myaquar_egypt.RetrofitConnection;
 import com.aquar.myaquar_egypt.Utils.myUtils;
 import com.daimajia.slider.library.Animations.DescriptionAnimation;
 import com.daimajia.slider.library.SliderLayout;
 import com.daimajia.slider.library.SliderTypes.BaseSliderView;
 import com.daimajia.slider.library.SliderTypes.TextSliderView;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.vr.sdk.proto.nano.CardboardDevice;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
 import dmax.dialog.SpotsDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 
 public class EventsAndNewsDetails extends AppCompatActivity {
@@ -76,8 +61,8 @@ public class EventsAndNewsDetails extends AppCompatActivity {
         dialog1.setMessage("Please wait.....");
         dialog1.show();
 
-      //  Toast.makeText(this, ""+EventsAndNews.id_event, Toast.LENGTH_SHORT).show();
-       GetCategoryData( EventsAndNews.id_event);
+
+       GetDataEventsAndNewDetails( EventsAndNews.id_event);
 
 
         Attend_btn = findViewById(R.id.Attend);
@@ -123,43 +108,66 @@ public class EventsAndNewsDetails extends AppCompatActivity {
 
     }
 
-    private void GetCategoryData(int value) {
 
 
-        AndroidNetworking.get(ConstantsUrl.EventandNews)
-                .addQueryParameter("id", String.valueOf(value))
-                .setPriority(Priority.LOW)
-                .build()
-                .getAsJSONObject(new JSONObjectRequestListener() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-
-                        dialog1.dismiss();
-                        parentOfEventAndNewDetails.setVisibility(View.VISIBLE);
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                        Model_array_of_Eventandnews array = gson.fromJson(response.toString(), Model_array_of_Eventandnews.class);
-                        list = array.getProject();
-
-                        for (int i = 0; i < list.get(0).getSlider_images().size(); i++) {
-                            String x = list.get(0).getSlider_images().get(i).getImage_url();
-                            urlimage.add(x);
-                        }
-
-                        DataOfSlider(urlimage);
-
-                        seteventdata(list.get(0).getDescription(),list.get(0).getProject(),list.get(0).getTitle());
+    private void GetDataEventsAndNewDetails(int value) {
 
 
+        Retrofit retrofit = RetrofitConnection.connectWith() ;
+        ForRitrofit r = retrofit.create(ForRitrofit.class);
 
+
+        Call<Model_array_of_Eventandnews> connection =  r.Get_Data_EventsAndNewDetails(String.valueOf(value));
+
+        connection.enqueue(new Callback<Model_array_of_Eventandnews>() {
+            @Override
+            public void onResponse(Call<Model_array_of_Eventandnews>call, Response<Model_array_of_Eventandnews> response) {
+
+                dialog1.dismiss();
+
+                try {
+
+
+                    list = response.body().getProject();
+                    parentOfEventAndNewDetails.setVisibility(View.VISIBLE);
+
+                    for (int i = 0; i < list.get(0).getSlider_images().size(); i++) {
+                        String x = list.get(0).getSlider_images().get(i).getImage_url();
+                        urlimage.add(x);
                     }
 
-                    @Override
-                    public void onError(ANError anError) {
-                        Toast.makeText(EventsAndNewsDetails.this, "Connection Error", Toast.LENGTH_SHORT).show();
-                        dialog1.dismiss();
-                    }
-                });
+                    DataOfSlider(urlimage);
+
+                    seteventdata(list.get(0).getDescription(),list.get(0).getProject(),list.get(0).getTitle());
+
+
+
+
+                }catch (Exception c){
+                    Toast.makeText(EventsAndNewsDetails.this, "DataBase Error", Toast.LENGTH_SHORT).show();
+
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<Model_array_of_Eventandnews>call, Throwable t) {
+
+
+                Toast.makeText(EventsAndNewsDetails.this, "Connection Error", Toast.LENGTH_SHORT).show();
+                dialog1.dismiss();
+            }
+        });
+
+
+
     }
+
+
+
+
+
+
     private void DataOfSlider(List imageUrl) {
         HashMap<String, String> file_maps = new HashMap<String, String>();
 

@@ -18,9 +18,13 @@ import com.androidnetworking.error.ANError;
 import com.androidnetworking.interfaces.JSONObjectRequestListener;
 import com.aquar.myaquar_egypt.Adapter.example_adapter_for_home_fragment;
 import com.aquar.myaquar_egypt.Fragments.fragment_home;
+import com.aquar.myaquar_egypt.InterFaces.ForRitrofit;
+import com.aquar.myaquar_egypt.KeyAndValueClass.KeyAndValueOfSearchResult;
+import com.aquar.myaquar_egypt.Model.EventandNewsDetailsModel.Model_array_of_Eventandnews;
 import com.aquar.myaquar_egypt.Model.HomeApi.ModelArray;
 import com.aquar.myaquar_egypt.Model.HomeApi.ModelObjects;
 import com.aquar.myaquar_egypt.R;
+import com.aquar.myaquar_egypt.RetrofitConnection;
 import com.aquar.myaquar_egypt.Utils.ConstantsUrl;
 import com.aquar.myaquar_egypt.Utils.myUtils;
 import com.google.gson.Gson;
@@ -32,6 +36,10 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 
 import dmax.dialog.SpotsDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 public class SearchResult extends AppCompatActivity {
 
@@ -62,6 +70,9 @@ public class SearchResult extends AppCompatActivity {
           categoryId = String.valueOf(Filter.radioBtn);
 
 
+        Toast.makeText(this, categoryId+"", Toast.LENGTH_SHORT).show();
+
+
         cheakIfDataIsAll();
 
 
@@ -78,72 +89,83 @@ public class SearchResult extends AppCompatActivity {
 
     }
 
+
+
     private void GetCategoryData(String category, String maxPrice , String minPrice , String maxArea , String minArea , String maxBedrooms ,
                                  String minBedrooms , String maxBathrooms  , String minBathrooms , String locations
-                                 )
+    )
     {
-        JSONObject object = new JSONObject();
-        try {
-            object.put("category_id",category);
-            object.put("max_price",maxPrice);
-            object.put("min_price",minPrice);
-            object.put("max_area",maxArea);
-            object.put("min_area",minArea);
-            object.put("max_badrooms",maxBedrooms);
-            object.put("min_badrooms",maxBedrooms);
-            object.put("max_bathrooms",maxBathrooms);
-            object.put("min_bathrooms",maxBedrooms);
-            object.put("locations",locations);
 
-        } catch (JSONException e) {
-            e.getStackTrace();
-        }
 
-        AndroidNetworking.post(ConstantsUrl.SearchResult)
-                .addJSONObjectBody(object)
-                .setPriority(Priority.LOW)
-                .build()
-                .getAsJSONObject(new JSONObjectRequestListener() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                      parentOfSearchResult.setVisibility(View.VISIBLE);
-                     dialog1.dismiss();
+        Retrofit retrofit = RetrofitConnection.connectWith() ;
+        ForRitrofit r = retrofit.create(ForRitrofit.class);
 
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                        ModelArray array = gson.fromJson(response.toString(), ModelArray.class);
-                        list = array.getProjects();
-                        setRecyclerData(list);
+
+        KeyAndValueOfSearchResult value = new KeyAndValueOfSearchResult(category , maxPrice , minPrice , maxArea , minArea
+        ,maxBedrooms , minBedrooms , maxBathrooms , minBathrooms , locations
+        );
+
+
+        Call<ModelArray> connection =  r.GetSearchResult(value);
+
+        connection.enqueue(new Callback<ModelArray>() {
+            @Override
+            public void onResponse(Call<ModelArray>call, Response<ModelArray> response) {
+
+                dialog1.dismiss();
+
+                try {
+
+
+
+                    list = response.body().getProjects();
+                    setRecyclerData(list);
 
 
 
 
-                        mAdapter.setOnItemClickListener(new example_adapter_for_home_fragment.OnItemClickListener() {
+                    mAdapter.setOnItemClickListener(new example_adapter_for_home_fragment.OnItemClickListener() {
 
-                            @Override
-                            public void intent_to_detales(int pos, ImageView imageView ) {
-                                go_detales(pos, imageView);
+                        @Override
+                        public void intent_to_detales(int pos, ImageView imageView ) {
+                            go_detales(pos, imageView);
 
-                                getid.id = list.get(pos).getProduct_id();
+                            getid.id = list.get(pos).getProduct_id();
 
 
 
-                            }
-                            @Override
-                            public void make_love(int pos, ImageView img) {
+                        }
+                        @Override
+                        public void make_love(int pos, ImageView img) {
 
-                            }
-                        });
+                        }
+                    });
 
-                    }
 
-                    @Override
-                    public void onError(ANError anError) {
-                        Toast.makeText(SearchResult.this, "No result", Toast.LENGTH_SHORT).show();
-                       dialog1.dismiss();
 
-                    }
-                });
+                }catch (Exception c){
+                    Toast.makeText(SearchResult.this, "No Result", Toast.LENGTH_SHORT).show();
+
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<ModelArray>call, Throwable t) {
+
+
+                Toast.makeText(SearchResult.this, "Connection Error", Toast.LENGTH_SHORT).show();
+                dialog1.dismiss();
+            }
+        });
+
+
+
+
+
     }
+
+
 
     private void setRecyclerData(ArrayList<ModelObjects> list) {
 
@@ -206,7 +228,7 @@ public class SearchResult extends AppCompatActivity {
     }
     @Override
     public void onBackPressed() {
-
+        Filter.radioBtn= 0 ;
         startActivity(new Intent(SearchResult.this, Filter.class));
         finish();
 

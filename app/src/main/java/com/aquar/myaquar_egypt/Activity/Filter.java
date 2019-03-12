@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.FrameLayout;
@@ -19,9 +20,11 @@ import com.androidnetworking.AndroidNetworking;
 import com.androidnetworking.common.Priority;
 import com.androidnetworking.error.ANError;
 import com.androidnetworking.interfaces.JSONObjectRequestListener;
+import com.aquar.myaquar_egypt.InterFaces.ForRitrofit;
 import com.aquar.myaquar_egypt.Model.ContactUsModel.ContactUsModelObject;
 import com.aquar.myaquar_egypt.Model.Search.SearchModelObject;
 import com.aquar.myaquar_egypt.R;
+import com.aquar.myaquar_egypt.RetrofitConnection;
 import com.aquar.myaquar_egypt.Utils.ConstantsUrl;
 import com.aquar.myaquar_egypt.Utils.myUtils;
 import com.google.gson.Gson;
@@ -34,6 +37,10 @@ import org.json.JSONObject;
 
 
 import dmax.dialog.SpotsDialog;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
 
 public class Filter extends AppCompatActivity {
@@ -88,7 +95,7 @@ public class Filter extends AppCompatActivity {
 
 
         radioButton();
-        Get_Data();
+        Get_Data_Of_Filter();
         onClickOfSpinners();
 
 
@@ -99,80 +106,77 @@ public class Filter extends AppCompatActivity {
 
     }
 
+    private void Get_Data_Of_Filter() {
+
+        Retrofit retrofit = RetrofitConnection.connectWith() ;
+        ForRitrofit r = retrofit.create(ForRitrofit.class);
 
 
-    private void Get_Data() {
-
-
-        AndroidNetworking.get(ConstantsUrl.search)
-                .setPriority(Priority.HIGH)
-                .build()
-                .getAsJSONObject(new JSONObjectRequestListener() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        dialog1.dismiss();
-                        parentOfFilter.setVisibility(View.VISIBLE);
-
-                        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-                        SearchModelObject array = gson.fromJson(response.toString(), SearchModelObject.class);
+        Call<SearchModelObject> connection =  r.Get_Data_Of_Filter();
+        connection.enqueue(new Callback<SearchModelObject>() {
+            @Override
+            public void onResponse(Call<SearchModelObject>call, Response<SearchModelObject> response) {
+                dialog1.dismiss();
+             try {
 
 
 
-                        adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, array.getMax_area());
-                        maxarea.setAdapter(adapter);
 
-                        adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, array.getMin_area());
-                        minarea.setAdapter(adapter);
-
-                        adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, array.getMin_price());
-                        minprice.setAdapter(adapter);
-
-                        adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, array.getMax_price());
-                        maxprice.setAdapter(adapter);
+                 adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, response.body().getMax_area());
+                 maxarea.setAdapter(adapter);
 
 
-                        adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, array.getMin_badrooms());
-                        minbed.setAdapter(adapter);
+                 parentOfFilter.setVisibility(View.VISIBLE);
 
 
-                        adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, array.getMax_badrooms());
-                        maxbed.setAdapter(adapter);
+                 adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, response.body().getMin_area());
+                 minarea.setAdapter(adapter);
 
-                        adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, array.getMin_bathrooms());
-                        minbath.setAdapter(adapter);
+                 adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, response.body().getMin_price());
+                 minprice.setAdapter(adapter);
 
-                        adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, array.getMax_bathrooms());
-                        maxbath.setAdapter(adapter);
-
-                        adapterString = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, array.getLocations());
-                        location.setAdapter(adapterString);
+                 adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, response.body().getMax_price());
+                 maxprice.setAdapter(adapter);
 
 
-//                        location.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//                            @Override
-//                            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-////                locationSpinner
-//                                ((TextView) view).setTextColor(getResources().getColor(R.color.Red));
-//                            }
-//                        });
+                 adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, response.body().getMin_badrooms());
+                 minbed.setAdapter(adapter);
+
+
+                 adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, response.body().getMax_badrooms());
+                 maxbed.setAdapter(adapter);
+
+                 adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, response.body().getMin_bathrooms());
+                 minbath.setAdapter(adapter);
+
+                 adapter = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, response.body().getMax_bathrooms());
+                 maxbath.setAdapter(adapter);
+
+                 adapterString = new ArrayAdapter<String>(getApplicationContext(),R.layout.custom_simple_text, response.body().getLocations());
+                 location.setAdapter(adapterString);
 
 
 
 
 
+             }catch (Exception f){
+                 Toast.makeText(Filter.this, "DataBase Error", Toast.LENGTH_SHORT).show();
+             }
+
+            }
+
+            @Override
+            public void onFailure(Call<SearchModelObject>call, Throwable t) {
+                dialog1.dismiss();
+                Toast.makeText(Filter.this, "connection field", Toast.LENGTH_SHORT).show();
 
 
-                    }
+            }
+        });
 
-                    @Override
-                    public void onError(ANError anError) {
-                        dialog1.dismiss();
-                        Toast.makeText(Filter.this, "connection field", Toast.LENGTH_SHORT).show();
-
-                    }
-                });
     }
+
+
 
 
     private void onClickOfSpinners (){
